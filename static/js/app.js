@@ -430,7 +430,13 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = resp.headers.get('content-disposition')?.split('filename=')[1] || 'output_named.step';
+            let filename = 'output_named.step';
+            const disposition = resp.headers.get('content-disposition');
+            if (disposition) {
+                const match = disposition.match(/filename="?([^";\n]+)"?/);
+                if (match) filename = match[1];
+            }
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

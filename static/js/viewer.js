@@ -372,8 +372,8 @@ class StepViewer {
 
         if (this.isOrbiting && (Math.abs(dx) > 1 || Math.abs(dy) > 1)) {
             this._didDrag = true;
-            this.spherical.theta -= dx * 0.01;
-            this.spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, this.spherical.phi + dy * 0.01));
+            this.spherical.theta += dx * 0.01;
+            this.spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, this.spherical.phi - dy * 0.01));
             this._updateCamera();
         } else if (this.isPanning) {
             this._didDrag = true;
