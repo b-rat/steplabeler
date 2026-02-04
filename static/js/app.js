@@ -11,6 +11,7 @@
     let featureManager = null;
     let facesMetadata = [];
     let isLoaded = false;
+    let multiSelectMode = false;
 
     // --- DOM refs ---
     const canvas = document.getElementById('viewer-canvas');
@@ -37,9 +38,8 @@
     const btnResetView = document.getElementById('btn-reset-view');
     const btnZoomFit = document.getElementById('btn-zoom-fit');
     const btnXray = document.getElementById('btn-xray');
-    const btnHideSelected = document.getElementById('btn-hide-selected');
-    const btnUnhideAll = document.getElementById('btn-unhide-all');
-    const btnWireframe = document.getElementById('btn-wireframe');
+        const btnWireframe = document.getElementById('btn-wireframe');
+    const btnMultiSelect = document.getElementById('btn-multi-select');
 
     // Tabs
     const tabs = document.querySelectorAll('.tab');
@@ -68,12 +68,8 @@
         btnResetView.addEventListener('click', () => viewer.resetView());
         btnZoomFit.addEventListener('click', () => viewer._fitCamera());
         btnXray.addEventListener('click', toggleXray);
-        btnHideSelected.addEventListener('click', hideSelectedFaces);
-        btnUnhideAll.addEventListener('click', () => {
-            viewer.unhideAll();
-            updateFaceList();
-        });
         btnWireframe.addEventListener('click', toggleWireframe);
+        btnMultiSelect.addEventListener('click', toggleMultiSelect);
 
         // Create feature button
         btnCreateFeature.addEventListener('click', showNameDialog);
@@ -180,16 +176,18 @@
     // --- Face Selection ---
 
     function onFaceClicked(faceId, shiftKey) {
+        const addToSelection = multiSelectMode || shiftKey;
+
         if (faceId < 0) {
-            // Clicked empty space — clear selection unless shift
-            if (!shiftKey) {
+            // Clicked empty space — clear selection unless in multi-select mode
+            if (!addToSelection) {
                 viewer.clearSelection();
                 updateSelectionInfo();
             }
             return;
         }
 
-        if (shiftKey) {
+        if (addToSelection) {
             // Toggle face in selection
             if (viewer.selectedFaces.has(faceId)) {
                 viewer.deselectFace(faceId);
@@ -401,13 +399,9 @@
         btnWireframe.classList.toggle('active', enabled);
     }
 
-    function hideSelectedFaces() {
-        for (const faceId of viewer.selectedFaces) {
-            viewer.hideFace(faceId);
-        }
-        viewer.clearSelection();
-        updateSelectionInfo();
-        updateFaceList();
+    function toggleMultiSelect() {
+        multiSelectMode = !multiSelectMode;
+        btnMultiSelect.classList.toggle('active', multiSelectMode);
     }
 
     // --- Export ---
@@ -464,15 +458,6 @@
             case 'Escape':
                 viewer.clearSelection();
                 updateSelectionInfo();
-                break;
-            case 'h':
-            case 'H':
-                hideSelectedFaces();
-                break;
-            case 'u':
-            case 'U':
-                viewer.unhideAll();
-                updateFaceList();
                 break;
             case 'x':
             case 'X':
