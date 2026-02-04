@@ -76,7 +76,6 @@
                 <div id="facelist-panel" class="panel-content">
                     <div class="section">
                         <div id="face-filters">
-                            <input type="text" id="face-search" placeholder="Filter faces...">
                             <select id="face-type-filter">
                                 <option value="all">All types</option>
                                 <option value="planar">Planar</option>
@@ -87,6 +86,12 @@
                                 <option value="bspline">B-Spline</option>
                                 <option value="other">Other</option>
                             </select>
+                            <div id="area-filter">
+                                <label>Area:</label>
+                                <input type="number" id="area-min" placeholder="Min" step="any">
+                                <span>–</span>
+                                <input type="number" id="area-max" placeholder="Max" step="any">
+                            </div>
                         </div>
                         <div id="face-list-container">
                             <div class="empty-state">No STEP file loaded.</div>

@@ -464,13 +464,26 @@ body {
 /* Face List */
 #face-filters {
     display: flex;
+    flex-direction: column;
     gap: 6px;
     margin-bottom: 8px;
 }
 
-#face-search {
-    flex: 1;
-    padding: 6px 8px;
+#area-filter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+#area-filter label {
+    flex-shrink: 0;
+}
+
+#area-filter input {
+    width: 70px;
+    padding: 4px 6px;
     font-size: 12px;
     font-family: var(--font-ui);
     background: var(--bg-primary);
@@ -480,11 +493,11 @@ body {
     outline: none;
 }
 
-#face-search:focus {
+#area-filter input:focus {
     border-color: var(--accent);
 }
 
-#face-search::placeholder {
+#area-filter input::placeholder {
     color: var(--text-muted);
 }
 

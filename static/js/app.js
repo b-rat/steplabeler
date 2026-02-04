@@ -24,8 +24,9 @@
     const btnCreateFeature = document.getElementById('btn-create-feature');
     const featuresContainer = document.getElementById('features-container');
     const faceListContainer = document.getElementById('face-list-container');
-    const faceSearch = document.getElementById('face-search');
     const faceTypeFilter = document.getElementById('face-type-filter');
+    const areaMinInput = document.getElementById('area-min');
+    const areaMaxInput = document.getElementById('area-max');
     const nameDialog = document.getElementById('name-dialog');
     const featureNameInput = document.getElementById('feature-name-input');
     const dialogFaceCount = document.getElementById('dialog-face-count');
@@ -93,8 +94,9 @@
         });
 
         // Face list filters
-        faceSearch.addEventListener('input', updateFaceList);
         faceTypeFilter.addEventListener('change', updateFaceList);
+        areaMinInput.addEventListener('input', updateFaceList);
+        areaMaxInput.addEventListener('input', updateFaceList);
 
         // Drag and drop
         viewerPanel.addEventListener('dragover', (e) => {
@@ -351,26 +353,26 @@
             return;
         }
 
-        const searchTerm = faceSearch.value.toLowerCase();
         const typeFilter = faceTypeFilter.value;
+        const areaMin = areaMinInput.value ? parseFloat(areaMinInput.value) : null;
+        const areaMax = areaMaxInput.value ? parseFloat(areaMaxInput.value) : null;
 
         let filtered = facesMetadata.filter(face => {
             if (typeFilter !== 'all' && face.surface_type !== typeFilter) return false;
-            if (searchTerm) {
-                const featureName = featureManager.getFeatureForFace(face.id) || '';
-                const text = `face ${face.id} ${face.surface_type} ${featureName}`.toLowerCase();
-                if (!text.includes(searchTerm)) return false;
-            }
+            if (areaMin !== null && face.area < areaMin) return false;
+            if (areaMax !== null && face.area > areaMax) return false;
             return true;
         });
 
+        // Sort by area descending for easier browsing
+        filtered.sort((a, b) => b.area - a.area);
+
         faceListContainer.innerHTML = filtered.map(face => {
             const isSelected = viewer.selectedFaces.has(face.id);
-            const isHidden = viewer.hiddenFaces.has(face.id);
             const featureName = featureManager.getFeatureForFace(face.id);
 
             return `
-                <div class="face-list-item ${isSelected ? 'selected' : ''} ${isHidden ? 'hidden-face' : ''}"
+                <div class="face-list-item ${isSelected ? 'selected' : ''}"
                      data-face-id="${face.id}"
                      onclick="window._app.clickFaceListItem(${face.id}, event)"
                      onmouseenter="window._app.flashFace(${face.id})"
