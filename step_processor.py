@@ -196,9 +196,45 @@ class StepProcessor:
                     else:
                         all_normals.extend([normal.X(), normal.Y(), normal.Z()])
             else:
-                # Use face normal or zero
-                for i in range(num_verts):
-                    all_normals.extend(self.face_metadata[face_id]["normal"])
+                # Compute normals from triangles for this face
+                # First collect all vertices for this face
+                face_verts = []
+                for i in range(1, num_verts + 1):
+                    node = triangulation.Node(i)
+                    node.Transform(trsf)
+                    face_verts.append([node.X(), node.Y(), node.Z()])
+
+                # Compute per-vertex normals by averaging adjacent triangle normals
+                vertex_normals = [[0, 0, 0] for _ in range(num_verts)]
+                for i in range(1, num_tris + 1):
+                    tri = triangulation.Triangle(i)
+                    n1, n2, n3 = tri.Get()
+                    v0 = face_verts[n1 - 1]
+                    v1 = face_verts[n2 - 1]
+                    v2 = face_verts[n3 - 1]
+                    # Compute triangle normal
+                    e1 = [v1[j] - v0[j] for j in range(3)]
+                    e2 = [v2[j] - v0[j] for j in range(3)]
+                    n = [
+                        e1[1] * e2[2] - e1[2] * e2[1],
+                        e1[2] * e2[0] - e1[0] * e2[2],
+                        e1[0] * e2[1] - e1[1] * e2[0],
+                    ]
+                    # Accumulate to each vertex
+                    for idx in [n1 - 1, n2 - 1, n3 - 1]:
+                        vertex_normals[idx] = [vertex_normals[idx][j] + n[j] for j in range(3)]
+
+                # Normalize and add
+                for vn in vertex_normals:
+                    length = (vn[0]**2 + vn[1]**2 + vn[2]**2) ** 0.5
+                    if length > 0:
+                        vn = [vn[j] / length for j in range(3)]
+                    else:
+                        vn = [0, 0, 1]  # Fallback
+                    if face.Orientation() == 1:  # Reversed
+                        all_normals.extend([-vn[0], -vn[1], -vn[2]])
+                    else:
+                        all_normals.extend(vn)
 
             # Extract triangles with correct winding
             for i in range(1, num_tris + 1):

@@ -39,6 +39,7 @@
     const btnXray = document.getElementById('btn-xray');
     const btnHideSelected = document.getElementById('btn-hide-selected');
     const btnUnhideAll = document.getElementById('btn-unhide-all');
+    const btnWireframe = document.getElementById('btn-wireframe');
 
     // Tabs
     const tabs = document.querySelectorAll('.tab');
@@ -72,6 +73,7 @@
             viewer.unhideAll();
             updateFaceList();
         });
+        btnWireframe.addEventListener('click', toggleWireframe);
 
         // Create feature button
         btnCreateFeature.addEventListener('click', showNameDialog);
@@ -162,8 +164,8 @@
         filenameEl.textContent = data.filename;
         facesMetadata = data.faces;
 
-        // Load mesh into viewer
-        viewer.loadMesh(data.mesh);
+        // Load mesh into viewer with face metadata for coloring
+        viewer.loadMesh(data.mesh, data.faces);
 
         // Clear features
         featureManager.clear();
@@ -391,6 +393,12 @@
         const enabled = !viewer.xrayMode;
         viewer.setXray(enabled);
         btnXray.classList.toggle('active', enabled);
+    }
+
+    function toggleWireframe() {
+        const enabled = !viewer.wireframeVisible;
+        viewer.setWireframe(enabled);
+        btnWireframe.classList.toggle('active', enabled);
     }
 
     function hideSelectedFaces() {

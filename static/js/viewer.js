@@ -18,6 +18,9 @@ class StepViewer {
         this.hiddenFaces = new Set();
         this.xrayMode = false;
         this.featureColors = {};  // face_id -> [r, g, b]
+        this.wireframe = null;
+        this.wireframeVisible = true;
+        this.facesMetadata = [];
 
         // Orbit state
         this.isOrbiting = false;
@@ -56,15 +59,20 @@ class StepViewer {
         this.renderer.setSize(this.canvas.clientWidth, this.canvas.clientHeight);
         this.renderer.setPixelRatio(window.devicePixelRatio);
 
-        // Lights
-        const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+        // Lights - high ambient for visibility of all surfaces
+        const ambient = new THREE.AmbientLight(0xffffff, 0.7);
         this.scene.add(ambient);
 
-        const dir1 = new THREE.DirectionalLight(0xffffff, 0.6);
+        // Hemisphere light for soft all-around illumination
+        const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
+        hemi.position.set(0, 20, 0);
+        this.scene.add(hemi);
+
+        const dir1 = new THREE.DirectionalLight(0xffffff, 0.4);
         dir1.position.set(5, 8, 5);
         this.scene.add(dir1);
 
-        const dir2 = new THREE.DirectionalLight(0xffffff, 0.3);
+        const dir2 = new THREE.DirectionalLight(0xffffff, 0.2);
         dir2.position.set(-5, -3, -5);
         this.scene.add(dir2);
 
@@ -88,11 +96,13 @@ class StepViewer {
         this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     }
 
-    loadMesh(data) {
+    loadMesh(data, facesMetadata) {
         /**
          * Load tessellated mesh data from backend.
          * data: { vertices: [...], normals: [...], triangles: [...], face_ids: [...], num_faces: N }
+         * facesMetadata: array of { id, surface_type, area, ... } for each face
          */
+        this.facesMetadata = facesMetadata || [];
 
         // Remove old mesh
         if (this.mesh) {
@@ -132,15 +142,15 @@ class StepViewer {
         this.mesh = new THREE.Mesh(geometry, material);
         this.scene.add(this.mesh);
 
-        // Wireframe overlay
-        const wireGeo = new THREE.WireframeGeometry(geometry);
-        const wireMat = new THREE.LineBasicMaterial({
-            color: 0x2a2a30,
-            transparent: true,
-            opacity: 0.15,
+        // Edge outline (shows only sharp edges, not tessellation)
+        const edgeGeo = new THREE.EdgesGeometry(geometry, 30); // 30 degree threshold
+        const edgeMat = new THREE.LineBasicMaterial({
+            color: 0x000000,
+            linewidth: 1,
         });
-        const wireframe = new THREE.LineSegments(wireGeo, wireMat);
-        this.mesh.add(wireframe);
+        this.wireframe = new THREE.LineSegments(edgeGeo, edgeMat);
+        this.wireframe.visible = this.wireframeVisible;
+        this.mesh.add(this.wireframe);
 
         // Fit camera
         this._fitCamera();
@@ -154,36 +164,27 @@ class StepViewer {
 
     _resetColors(colorArray, indices, faceIds) {
         /**
-         * Assign a unique base color to each face for visual distinction.
+         * Assign base color to each face.
          */
-        const baseColors = this._generateFaceColors(this.numFaces || Math.max(...faceIds) + 1);
+        const baseColor = [0.6, 0.6, 0.65];
 
-        // For each triangle, set vertex colors based on face ID
-        for (let i = 0; i < faceIds.length; i++) {
-            const faceId = faceIds[i];
-            const color = baseColors[faceId];
-
-            for (let v = 0; v < 3; v++) {
-                const vertIdx = indices[i * 3 + v];
-                colorArray[vertIdx * 3] = color[0];
-                colorArray[vertIdx * 3 + 1] = color[1];
-                colorArray[vertIdx * 3 + 2] = color[2];
-            }
+        // First, initialize ALL vertices to base color
+        for (let i = 0; i < colorArray.length; i += 3) {
+            colorArray[i] = baseColor[0];
+            colorArray[i + 1] = baseColor[1];
+            colorArray[i + 2] = baseColor[2];
         }
     }
 
     _generateFaceColors(count) {
         /**
-         * Generate visually distinct colors for N faces.
-         * Uses a muted palette with enough variation to distinguish faces.
+         * Generate uniform color for all faces.
          */
         const colors = [];
+        const baseColor = [0.6, 0.6, 0.65]; // Light gray-blue
+
         for (let i = 0; i < count; i++) {
-            const hue = (i * 137.508) % 360; // Golden angle
-            const sat = 0.25 + (i % 3) * 0.1;
-            const light = 0.45 + (i % 5) * 0.04;
-            const rgb = this._hslToRgb(hue / 360, sat, light);
-            colors.push(rgb);
+            colors.push(baseColor);
         }
         return colors;
     }
@@ -321,6 +322,13 @@ class StepViewer {
             this.mesh.material.opacity = enabled ? 0.3 : 1.0;
             this.mesh.material.depthWrite = !enabled;
             this.mesh.material.needsUpdate = true;
+        }
+    }
+
+    setWireframe(enabled) {
+        this.wireframeVisible = enabled;
+        if (this.wireframe) {
+            this.wireframe.visible = enabled;
         }
     }
 
