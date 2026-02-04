@@ -108,6 +108,44 @@ The viewer uses trackball-style rotation implemented with quaternions. This allo
 - `cameraDistance`: Distance from target
 - `target`: Look-at point (Vector3)
 
+## Assembly Behavior
+
+### Single Parts vs Assemblies
+The tool works best with single-part STEP files. For assemblies, behavior depends on how the CAD system exports and how OCC reads the file.
+
+### Simple Assemblies (Unique Parts)
+Assemblies containing multiple unique parts (e.g., a block and a pin) work correctly. OCC reads faces in the same order as `ADVANCED_FACE` entities appear in the STEP file, so the direct `face_id → entity_id` mapping holds.
+
+### Assemblies with Instanced Parts
+When an assembly contains multiple instances of the same part (e.g., two identical pins), the STEP file contains:
+- One set of `ADVANCED_FACE` entities for the prototype geometry
+- Multiple `MAPPED_ITEM` references that instantiate it with different transforms
+
+OCC expands these instances into separate faces, resulting in more OCC faces than STEP entities. For example:
+- STEP: 3 `ADVANCED_FACE` entities for a pin (top, cylinder, bottom)
+- OCC: 6 faces (3 per instance × 2 instances)
+
+**Observed behavior (SolidWorks):** The *last-added* instance in SolidWorks appears to be read *first* by OCC, placing its faces at indices that align with the STEP entity indices. Therefore:
+- Selecting faces on the **last-added instance** → names export correctly
+- Selecting faces on earlier instances → may map to wrong/nonexistent entities
+
+This is due to the combination of:
+1. SolidWorks' STEP export ordering
+2. OCC's instance expansion order
+3. The direct index-based face→entity mapping
+
+### Workarounds for Instanced Assemblies
+- **Select from last instance:** If consistent, select faces only from the most recently added instance
+- **Export parts separately:** Export individual parts from CAD, label them separately, then reassemble
+- **Accept partial labeling:** Label what works; unlabeled faces retain their original names
+
+### Why Automatic Instance Detection Failed
+We attempted automatic instance grouping using:
+1. **OCC's `IsSame()`** — Doesn't work because OCC creates independent geometry for each instance
+2. **Geometric fingerprinting** — Groups faces by (surface_type, area, bbox_size), but incorrectly groups symmetric faces within the same part (e.g., both ends of a cylinder)
+
+Proper instance handling would require parsing the STEP file's assembly structure (`MAPPED_ITEM`, `REPRESENTATION_RELATIONSHIP`) to track which OCC faces correspond to which prototype entities.
+
 ## Development
 
 ### Prerequisites
