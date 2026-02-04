@@ -269,10 +269,31 @@
     }
 
     /**
-     * Calculate and display distance between two selected parallel planar faces.
+     * Calculate and display measurements for selected faces.
+     * - 1 cylindrical face: show diameter
+     * - 2 cylindrical faces: show center-to-center distance
+     * - 2 parallel planar faces: show distance between planes
      */
     function updateMeasurement() {
         const selectedIds = Array.from(viewer.selectedFaces);
+
+        // Single face selected - show diameter for cylindrical
+        if (selectedIds.length === 1) {
+            const face = facesMetadata[selectedIds[0]];
+            if (face && face.surface_type === 'cylindrical' && face.radius !== null) {
+                const diameter = face.radius * 2;
+                measurementDisplay.classList.remove('hidden');
+                measurementDisplay.classList.add('has-value');
+                measurementDisplay.innerHTML = `
+                    <div class="measurement-label">Diameter (cylinder)</div>
+                    <div class="measurement-value">${diameter.toFixed(4)}</div>
+                    <div class="measurement-note">Face #${selectedIds[0]} · radius: ${face.radius.toFixed(4)}</div>`;
+                return;
+            }
+            measurementDisplay.classList.add('hidden');
+            measurementDisplay.classList.remove('has-value');
+            return;
+        }
 
         // Only measure when exactly 2 faces are selected
         if (selectedIds.length !== 2) {
@@ -289,24 +310,36 @@
             return;
         }
 
-        // Check if both faces are planar
-        if (face1.surface_type !== 'planar' || face2.surface_type !== 'planar') {
-            measurementDisplay.classList.remove('hidden', 'has-value');
-            measurementDisplay.innerHTML = `
-                <div class="measurement-note">
-                    Distance measurement requires two planar faces.
-                    Selected: ${face1.surface_type} + ${face2.surface_type}
-                </div>`;
+        // Two cylindrical faces - show center distance
+        if (face1.surface_type === 'cylindrical' && face2.surface_type === 'cylindrical') {
+            measureCylinderDistance(face1, face2, selectedIds);
             return;
         }
 
-        // Get normals and centroids
+        // Two planar faces - show distance if parallel
+        if (face1.surface_type === 'planar' && face2.surface_type === 'planar') {
+            measurePlanarDistance(face1, face2, selectedIds);
+            return;
+        }
+
+        // Mixed types - show info
+        measurementDisplay.classList.remove('hidden', 'has-value');
+        measurementDisplay.innerHTML = `
+            <div class="measurement-note">
+                Select two faces of the same type to measure.
+                Selected: ${face1.surface_type} + ${face2.surface_type}
+            </div>`;
+    }
+
+    /**
+     * Measure distance between two parallel planar faces.
+     */
+    function measurePlanarDistance(face1, face2, selectedIds) {
         const n1 = face1.normal;
         const n2 = face2.normal;
         const c1 = face1.centroid;
         const c2 = face2.centroid;
 
-        // Check if normals exist (should always be set for planar faces)
         if (!n1 || !n2 || !c1 || !c2) {
             measurementDisplay.classList.add('hidden');
             return;
@@ -314,10 +347,9 @@
 
         // Check if faces are parallel: |n1 · n2| ≈ 1
         const dot = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
-        const isParallel = Math.abs(Math.abs(dot) - 1) < 0.001; // ~0.06 degrees tolerance
+        const isParallel = Math.abs(Math.abs(dot) - 1) < 0.001;
 
         if (!isParallel) {
-            // Calculate the angle between normals
             const angleDeg = Math.acos(Math.min(1, Math.abs(dot))) * (180 / Math.PI);
             measurementDisplay.classList.remove('hidden', 'has-value');
             measurementDisplay.innerHTML = `
@@ -340,6 +372,72 @@
             <div class="measurement-label">Distance (parallel faces)</div>
             <div class="measurement-value">${distance.toFixed(4)}</div>
             <div class="measurement-note">Face #${selectedIds[0]} ↔ Face #${selectedIds[1]}</div>`;
+    }
+
+    /**
+     * Measure center-to-center distance between two cylindrical faces.
+     */
+    function measureCylinderDistance(face1, face2, selectedIds) {
+        const p1 = face1.axis_point;
+        const d1 = face1.axis_direction;
+        const p2 = face2.axis_point;
+        const d2 = face2.axis_direction;
+
+        if (!p1 || !d1 || !p2 || !d2) {
+            measurementDisplay.classList.add('hidden');
+            return;
+        }
+
+        // Check if axes are parallel: |d1 · d2| ≈ 1
+        const dot = d1[0] * d2[0] + d1[1] * d2[1] + d1[2] * d2[2];
+        const isParallel = Math.abs(Math.abs(dot) - 1) < 0.001;
+
+        // Vector from p1 to p2
+        const v = [p2[0] - p1[0], p2[1] - p1[1], p2[2] - p1[2]];
+
+        let centerDistance;
+        if (isParallel) {
+            // For parallel axes, distance = |v - (v · d1) * d1|
+            const proj = v[0] * d1[0] + v[1] * d1[1] + v[2] * d1[2];
+            const perp = [
+                v[0] - proj * d1[0],
+                v[1] - proj * d1[1],
+                v[2] - proj * d1[2],
+            ];
+            centerDistance = Math.sqrt(perp[0] * perp[0] + perp[1] * perp[1] + perp[2] * perp[2]);
+        } else {
+            // For non-parallel (skew) axes, use closest approach distance
+            // Cross product gives perpendicular direction
+            const cross = [
+                d1[1] * d2[2] - d1[2] * d2[1],
+                d1[2] * d2[0] - d1[0] * d2[2],
+                d1[0] * d2[1] - d1[1] * d2[0],
+            ];
+            const crossLen = Math.sqrt(cross[0] * cross[0] + cross[1] * cross[1] + cross[2] * cross[2]);
+            if (crossLen > 0.0001) {
+                // Distance = |v · (d1 × d2)| / |d1 × d2|
+                centerDistance = Math.abs(v[0] * cross[0] + v[1] * cross[1] + v[2] * cross[2]) / crossLen;
+            } else {
+                // Nearly parallel, fall back to parallel case
+                const proj = v[0] * d1[0] + v[1] * d1[1] + v[2] * d1[2];
+                const perp = [v[0] - proj * d1[0], v[1] - proj * d1[1], v[2] - proj * d1[2]];
+                centerDistance = Math.sqrt(perp[0] * perp[0] + perp[1] * perp[1] + perp[2] * perp[2]);
+            }
+        }
+
+        // Also show diameters
+        const d1Str = face1.radius ? `⌀${(face1.radius * 2).toFixed(4)}` : '?';
+        const d2Str = face2.radius ? `⌀${(face2.radius * 2).toFixed(4)}` : '?';
+
+        measurementDisplay.classList.remove('hidden');
+        measurementDisplay.classList.add('has-value');
+        measurementDisplay.innerHTML = `
+            <div class="measurement-label">Center Distance (cylinders)</div>
+            <div class="measurement-value">${centerDistance.toFixed(4)}</div>
+            <div class="measurement-note">
+                Face #${selectedIds[0]} (${d1Str}) ↔ Face #${selectedIds[1]} (${d2Str})
+                ${!isParallel ? '<br>Axes are not parallel' : ''}
+            </div>`;
     }
 
     // --- Feature Creation ---

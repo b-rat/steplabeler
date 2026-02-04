@@ -138,6 +138,26 @@ class StepProcessor:
             else:
                 normal = [axis.X(), axis.Y(), axis.Z()]
 
+        # Cylinder-specific properties
+        radius = None
+        axis_direction = None
+        axis_point = None
+        if surface_type == "cylindrical":
+            cylinder = adaptor.Cylinder()
+            radius = round(cylinder.Radius(), 4)
+            cyl_axis = cylinder.Axis()
+            axis_direction = [
+                round(cyl_axis.Direction().X(), 4),
+                round(cyl_axis.Direction().Y(), 4),
+                round(cyl_axis.Direction().Z(), 4),
+            ]
+            axis_loc = cyl_axis.Location()
+            axis_point = [
+                round(axis_loc.X(), 4),
+                round(axis_loc.Y(), 4),
+                round(axis_loc.Z(), 4),
+            ]
+
         return {
             "id": face_id,
             "surface_type": surface_type,
@@ -148,6 +168,9 @@ class StepProcessor:
                 round(xmin, 4), round(ymin, 4), round(zmin, 4),
                 round(xmax, 4), round(ymax, 4), round(zmax, 4)
             ],
+            "radius": radius,
+            "axis_direction": axis_direction,
+            "axis_point": axis_point,
             "name": None,
             "feature": None,
         }
