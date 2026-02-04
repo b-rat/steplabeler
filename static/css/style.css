@@ -331,6 +331,41 @@ body {
     margin-bottom: 8px;
 }
 
+#measurement-display {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    border-radius: var(--radius);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+}
+
+#measurement-display.has-value {
+    background: rgba(74, 255, 138, 0.1);
+    border-color: var(--success);
+}
+
+#measurement-display .measurement-label {
+    color: var(--text-muted);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+#measurement-display .measurement-value {
+    color: var(--success);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+#measurement-display .measurement-note {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin-top: 4px;
+}
+
 #features-list {
     flex: 1;
     overflow-y: auto;

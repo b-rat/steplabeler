@@ -35,6 +35,7 @@
     const viewerPanel = document.getElementById('viewer-panel');
     const dropOverlay = document.getElementById('drop-overlay');
     const btnClear = document.getElementById('btn-clear');
+    const measurementDisplay = document.getElementById('measurement-display');
 
     // Toolbar buttons
     const btnResetView = document.getElementById('btn-reset-view');
@@ -259,10 +260,86 @@
         if (count === 0) {
             selectedCount.textContent = 'No faces selected';
             btnCreateFeature.disabled = true;
+            measurementDisplay.classList.add('hidden');
         } else {
             selectedCount.textContent = `${count} face${count > 1 ? 's' : ''} selected`;
             btnCreateFeature.disabled = false;
+            updateMeasurement();
         }
+    }
+
+    /**
+     * Calculate and display distance between two selected parallel planar faces.
+     */
+    function updateMeasurement() {
+        const selectedIds = Array.from(viewer.selectedFaces);
+
+        // Only measure when exactly 2 faces are selected
+        if (selectedIds.length !== 2) {
+            measurementDisplay.classList.add('hidden');
+            measurementDisplay.classList.remove('has-value');
+            return;
+        }
+
+        const face1 = facesMetadata[selectedIds[0]];
+        const face2 = facesMetadata[selectedIds[1]];
+
+        if (!face1 || !face2) {
+            measurementDisplay.classList.add('hidden');
+            return;
+        }
+
+        // Check if both faces are planar
+        if (face1.surface_type !== 'planar' || face2.surface_type !== 'planar') {
+            measurementDisplay.classList.remove('hidden', 'has-value');
+            measurementDisplay.innerHTML = `
+                <div class="measurement-note">
+                    Distance measurement requires two planar faces.
+                    Selected: ${face1.surface_type} + ${face2.surface_type}
+                </div>`;
+            return;
+        }
+
+        // Get normals and centroids
+        const n1 = face1.normal;
+        const n2 = face2.normal;
+        const c1 = face1.centroid;
+        const c2 = face2.centroid;
+
+        // Check if normals exist (should always be set for planar faces)
+        if (!n1 || !n2 || !c1 || !c2) {
+            measurementDisplay.classList.add('hidden');
+            return;
+        }
+
+        // Check if faces are parallel: |n1 · n2| ≈ 1
+        const dot = n1[0] * n2[0] + n1[1] * n2[1] + n1[2] * n2[2];
+        const isParallel = Math.abs(Math.abs(dot) - 1) < 0.001; // ~0.06 degrees tolerance
+
+        if (!isParallel) {
+            // Calculate the angle between normals
+            const angleDeg = Math.acos(Math.min(1, Math.abs(dot))) * (180 / Math.PI);
+            measurementDisplay.classList.remove('hidden', 'has-value');
+            measurementDisplay.innerHTML = `
+                <div class="measurement-note">
+                    Faces are not parallel (${angleDeg.toFixed(1)}° angle).
+                    Select two parallel planar faces to measure distance.
+                </div>`;
+            return;
+        }
+
+        // Calculate distance: |n1 · (c2 - c1)|
+        const dx = c2[0] - c1[0];
+        const dy = c2[1] - c1[1];
+        const dz = c2[2] - c1[2];
+        const distance = Math.abs(n1[0] * dx + n1[1] * dy + n1[2] * dz);
+
+        measurementDisplay.classList.remove('hidden');
+        measurementDisplay.classList.add('has-value');
+        measurementDisplay.innerHTML = `
+            <div class="measurement-label">Distance (parallel faces)</div>
+            <div class="measurement-value">${distance.toFixed(4)}</div>
+            <div class="measurement-note">Face #${selectedIds[0]} ↔ Face #${selectedIds[1]}</div>`;
     }
 
     // --- Feature Creation ---
