@@ -29,7 +29,7 @@ python app.py my_part.step
 python app.py
 ```
 
-The application opens in your browser at `http://localhost:5000`.
+The application opens in your browser at `http://localhost:5001`.
 
 ## Usage
 

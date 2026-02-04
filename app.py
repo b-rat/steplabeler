@@ -160,7 +160,7 @@ def open_browser(port):
 
 
 if __name__ == '__main__':
-    port = 5000
+    port = 5001
 
     # Check for CLI argument: python app.py my_part.step
     initial_file = None

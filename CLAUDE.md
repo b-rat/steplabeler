@@ -119,7 +119,7 @@ The viewer uses trackball-style rotation implemented with quaternions. This allo
 ```bash
 pip install -r requirements.txt
 python app.py
-# Opens browser to http://localhost:5000
+# Opens browser to http://localhost:5001
 ```
 
 Or with a file:
