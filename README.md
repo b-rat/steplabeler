@@ -14,8 +14,8 @@ SolidWorks → STEP → STEP Labeler → Named STEP → Claude Code / CadQuery /
 
 ```bash
 # Clone the repo
-git clone <your-repo-url>
-cd step-labeler
+git clone https://github.com/b-rat/steplabeler.git
+cd steplabeler
 
 # Install dependencies (virtual environment recommended)
 python -m venv venv
@@ -36,34 +36,40 @@ The application opens in your browser at `http://localhost:5000`.
 ### Loading a STEP File
 - Drag and drop a `.step` or `.stp` file onto the viewer
 - Or click **Import STEP** in the top bar
+- Or pass a file path as a command-line argument
 
 ### Navigating the 3D View
-- **Left-click drag**: Orbit/rotate
+- **Left-click drag**: Orbit/rotate (trackball-style continuous rotation)
 - **Right-click drag**: Orbit/rotate
 - **Middle-click drag** or **Ctrl+click drag**: Pan
 - **Scroll wheel**: Zoom
 
+The viewer displays origin axes (X=red, Y=green, Z=blue) and CAD topological edges for clear geometry visualization.
+
 ### Selecting Faces
 - **Click** a face to select it
 - **Shift+click** to add/remove faces from selection
+- **Multi-select toggle** (⊕ button): Enable to click faces without holding Shift
 - **Escape** to clear selection
 - Click in empty space to deselect
 
 ### Creating Features
-1. Select one or more faces (click + shift-click)
+1. Select one or more faces (click + shift-click, or use multi-select mode)
 2. Click **Create Feature from Selection** (or press **F**)
 3. Enter a snake_case name (e.g., `mounting_boss`, `cable_slot`)
 4. Sub-face names are auto-generated from geometry type
 
-### Managing Hidden Faces
-- Select faces and press **H** to hide them (reveals geometry behind)
-- Press **U** to unhide all faces
-- Press **X** to toggle X-ray (transparency) mode
+### View Controls
+- **Reset view** (⟳): Return to initial isometric view
+- **Fit all** (⊞): Zoom to fit the entire model
+- **X-ray mode** (◇): Toggle transparency to see through the model
+- **Wireframe** (△): Toggle CAD edge display
 
-### Face List
+### Face List Tab
 - Switch to the **Face List** tab to see all faces with metadata
-- Filter by surface type (planar, cylindrical, etc.)
-- Search by face ID or feature name
+- Filter by surface type (planar, cylindrical, conical, spherical, toroidal, bspline, bezier, revolution, extrusion, offset)
+- Filter by area range (min/max)
+- Faces are sorted by area (largest first)
 - Hover over a face in the list to highlight it in the 3D view
 - Click a face in the list to select it
 
@@ -135,10 +141,26 @@ named_faces = {eid: name for eid, name in faces if name and name != 'NONE'}
 | Key | Action |
 |-----|--------|
 | Escape | Clear selection |
-| H | Hide selected faces |
-| U | Unhide all faces |
 | X | Toggle X-ray mode |
 | F | Create feature from selection |
+
+## Directory Structure
+
+```
+steplabeler/
+├── app.py                 # Flask application and API endpoints
+├── step_processor.py      # STEP file I/O using OCC/CadQuery
+├── requirements.txt       # Python dependencies
+├── templates/
+│   └── index.html         # Main page template
+└── static/
+    ├── css/
+    │   └── style.css      # UI styling
+    └── js/
+        ├── app.js         # Application state and API communication
+        ├── features.js    # Feature manager logic
+        └── viewer.js      # Three.js 3D viewer
+```
 
 ## License
 
