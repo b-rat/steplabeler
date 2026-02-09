@@ -47,6 +47,7 @@
     const btnXray = document.getElementById('btn-xray');
     const btnWireframe = document.getElementById('btn-wireframe');
     const btnMultiSelect = document.getElementById('btn-multi-select');
+    const btnColors = document.getElementById('btn-colors');
     const btnGridXZ = document.getElementById('btn-grid-xz');
     const btnGridXY = document.getElementById('btn-grid-xy');
     const btnGridYZ = document.getElementById('btn-grid-yz');
@@ -87,6 +88,7 @@
         btnXray.addEventListener('click', toggleXray);
         btnWireframe.addEventListener('click', toggleWireframe);
         btnMultiSelect.addEventListener('click', toggleMultiSelect);
+        btnColors.addEventListener('click', toggleColors);
         btnGridXZ.addEventListener('click', () => setGridPlane('XZ'));
         btnGridXY.addEventListener('click', () => setGridPlane('XY'));
         btnGridYZ.addEventListener('click', () => setGridPlane('YZ'));
@@ -672,6 +674,12 @@
         const enabled = !viewer.wireframeVisible;
         viewer.setWireframe(enabled);
         btnWireframe.classList.toggle('active', enabled);
+    }
+
+    function toggleColors() {
+        const enabled = !viewer.colorsVisible;
+        viewer.setColorsVisible(enabled);
+        btnColors.classList.toggle('active', enabled);
     }
 
     function toggleMultiSelect() {

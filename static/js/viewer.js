@@ -20,6 +20,7 @@ class StepViewer {
         this.featureColors = {};  // face_id -> [r, g, b]
         this.wireframe = null;
         this.wireframeVisible = true;
+        this.colorsVisible = true;
         this.facesMetadata = [];
 
         // Orbit state - trackball style
@@ -320,8 +321,8 @@ class StepViewer {
     resetFaceColor(faceId) {
         if (!this.mesh || faceId < 0) return;
 
-        // Check if face has a feature color
-        if (this.featureColors[faceId]) {
+        // Check if face has a feature color and colors are visible
+        if (this.colorsVisible && this.featureColors[faceId]) {
             this.highlightFace(faceId, this.featureColors[faceId]);
             return;
         }
@@ -393,6 +394,28 @@ class StepViewer {
         this.wireframeVisible = enabled;
         if (this.wireframe) {
             this.wireframe.visible = enabled;
+        }
+    }
+
+    setColorsVisible(enabled) {
+        this.colorsVisible = enabled;
+        if (!this.mesh) return;
+
+        if (enabled) {
+            // Restore feature colors
+            for (const [faceId, color] of Object.entries(this.featureColors)) {
+                if (!this.selectedFaces.has(Number(faceId))) {
+                    this.highlightFace(Number(faceId), color);
+                }
+            }
+        } else {
+            // Reset all non-selected faces to base color
+            const baseColor = [0.6, 0.6, 0.65];
+            for (let faceId = 0; faceId < this.numFaces; faceId++) {
+                if (!this.selectedFaces.has(faceId)) {
+                    this.highlightFace(faceId, baseColor);
+                }
+            }
         }
     }
 
