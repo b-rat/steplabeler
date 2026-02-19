@@ -205,9 +205,10 @@
         btnClipYZ.classList.remove('active');
         btnClipXZ.classList.remove('active');
 
-        // Ensure feature colors are visible for new model
+        // Reset toggle states for new model
         viewer.colorsVisible = true;
         btnColors.classList.add('active');
+        btnXray.classList.remove('active');
 
         // Load mesh into viewer with face metadata for coloring
         viewer.loadMesh(data.mesh, data.faces);
